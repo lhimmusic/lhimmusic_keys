@@ -82,7 +82,7 @@ const soundPickBtn=document.getElementById('soundPickBtn');
 const soundPickName=document.getElementById('soundPickName');
 const soundPanel=document.getElementById('soundPanel');
 
-let keyEls={},clickHeld=new Set(),midiHeld=new Set(),midiSustained=new Set();
+let keyEls={},clickHeld=new Set(),midiHeld=new Set(),midiSustained=new Set(),pedalSustained=new Set();
 let pedalDown=false,sustainEnabled=false,midiInitStarted=false;
 let soundEnabled=false,audioCtx=null,currentSoundId='piano';
 const activeNodes={};
@@ -103,7 +103,7 @@ function mkPiano(ctx,freq,t){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.22,t+0.008);
   g.gain.exponentialRampToValueAtTime(0.1,t+0.15);g.gain.exponentialRampToValueAtTime(0.0001,t+3.5);
   const tid=setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),3700);
-  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.15);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),200);};
+  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.15);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),200);};
 }
 
 function mkEPiano(ctx,freq,t){
@@ -113,30 +113,23 @@ function mkEPiano(ctx,freq,t){
   mod.connect(modG);mod.start(t);
   const car=ctx.createOscillator();car.type='sine';car.frequency.value=freq;
   modG.connect(car.frequency);car.connect(g);car.start(t);
-  const lfo=ctx.createOscillator();lfo.frequency.value=5.5;
-  const lfoG=ctx.createGain();lfoG.gain.value=0.04;
-  lfo.connect(lfoG);lfoG.connect(g.gain);lfo.start(t);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.28,t+0.01);
   g.gain.exponentialRampToValueAtTime(0.15,t+0.4);g.gain.exponentialRampToValueAtTime(0.0001,t+4.5);
-  const all=[mod,car,lfo];
+  const all=[mod,car];
   const tid=setTimeout(()=>all.forEach(o=>{try{o.stop()}catch(e){}}),4700);
-  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.3);setTimeout(()=>all.forEach(o=>{try{o.stop()}catch(e){}}),400);};
+  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.3);setTimeout(()=>all.forEach(o=>{try{o.stop()}catch(e){}}),400);};
 }
 
 function mkStrings(ctx,freq,t){
   const g=ctx.createGain();g.connect(ctx.destination);
-  const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=2200;f.connect(g);
-  const vib=ctx.createOscillator();vib.frequency.value=5.2;
-  const vibG=ctx.createGain();vibG.gain.setValueAtTime(0,t);vibG.gain.linearRampToValueAtTime(freq*0.008,t+0.6);
-  vib.connect(vibG);vib.start(t);
+  const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=1000;f.Q.value=0.4;f.connect(g);
   const oscs=[];
-  [0,-8,8,-16,16].forEach(d=>{
-    const o=ctx.createOscillator();o.type='sawtooth';o.frequency.value=freq;o.detune.value=d;
-    vibG.connect(o.detune);o.connect(f);o.start(t);oscs.push(o);
+  [0,-5,5,-10,10].forEach(d=>{
+    const o=ctx.createOscillator();o.type='triangle';o.frequency.value=freq;o.detune.value=d;
+    o.connect(f);o.start(t);oscs.push(o);
   });
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.15,t+0.3);
-  const all=[vib,...oscs];
-  return()=>{const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.4);setTimeout(()=>all.forEach(o=>{try{o.stop()}catch(e){}}),600);};
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.18,t+0.6);
+  return()=>{const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.7);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),900);};
 }
 
 function mkOrgan(ctx,freq,t){
@@ -148,7 +141,7 @@ function mkOrgan(ctx,freq,t){
     o.connect(og);o.start(t);oscs.push(o);
   });
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.32,t+0.012);
-  return()=>{const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.linearRampToValueAtTime(0,n+0.02);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),80);};
+  return()=>{const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.linearRampToValueAtTime(0,n+0.02);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),80);};
 }
 
 function mkLead(ctx,freq,t){
@@ -163,7 +156,7 @@ function mkLead(ctx,freq,t){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.18,t+0.02);
   g.gain.exponentialRampToValueAtTime(0.0001,t+2.2);
   const tid=setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),2400);
-  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.08);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),150);};
+  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.08);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),150);};
 }
 
 function mkBass(ctx,freq,t){
@@ -174,44 +167,13 @@ function mkBass(ctx,freq,t){
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.38,t+0.005);
   g.gain.exponentialRampToValueAtTime(0.0001,t+1.5);
   const tid=setTimeout(()=>{try{o.stop()}catch(e){}},1700);
-  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.06);setTimeout(()=>{try{o.stop()}catch(e){}},130);};
+  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.06);setTimeout(()=>{try{o.stop()}catch(e){}},130);};
 }
 
-function mkMarimba(ctx,freq,t){
-  const g=ctx.createGain();g.connect(ctx.destination);
-  const oscs=[];
-  [[1,0.7,0.55],[3.87,0.2,0.3],[9.87,0.08,0.15]].forEach(([r,a,d])=>{
-    const og=ctx.createGain();og.connect(g);
-    const o=ctx.createOscillator();o.type='sine';o.frequency.value=freq*r;
-    o.connect(og);o.start(t);oscs.push(o);
-    og.gain.setValueAtTime(a,t);og.gain.exponentialRampToValueAtTime(0.0001,t+d);
-  });
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+0.004);
-  const tid=setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),700);
-  return()=>{clearTimeout(tid);setTimeout(()=>oscs.forEach(o=>{try{o.stop()}catch(e){}}),50);};
-}
-
-function mkGuitar(ctx,freq,t){
-  const g=ctx.createGain();g.connect(ctx.destination);
-  const body=ctx.createOscillator();body.type='triangle';body.frequency.value=freq;
-  const bodyG=ctx.createGain();bodyG.gain.value=0.3;body.connect(bodyG);bodyG.connect(g);body.start(t);
-  const buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*0.04),ctx.sampleRate);
-  const bd=buf.getChannelData(0);for(let i=0;i<bd.length;i++)bd[i]=(Math.random()*2-1)*0.5;
-  const src=ctx.createBufferSource();src.buffer=buf;
-  const nf=ctx.createBiquadFilter();nf.type='bandpass';nf.frequency.value=freq*1.5;nf.Q.value=5;
-  src.connect(nf);nf.connect(g);src.start(t);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.38,t+0.005);
-  g.gain.exponentialRampToValueAtTime(0.0001,t+1.8);
-  const tid=setTimeout(()=>{try{body.stop()}catch(e){}},2000);
-  return()=>{clearTimeout(tid);const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.1);setTimeout(()=>{try{body.stop()}catch(e){}},200);};
-}
 
 function mkFlute(ctx,freq,t){
   const g=ctx.createGain();g.connect(ctx.destination);
   const o=ctx.createOscillator();o.type='sine';o.frequency.value=freq;o.connect(g);o.start(t);
-  const vib=ctx.createOscillator();vib.frequency.value=5.5;
-  const vibG=ctx.createGain();vibG.gain.setValueAtTime(0,t);vibG.gain.linearRampToValueAtTime(freq*0.012,t+0.5);
-  vib.connect(vibG);vibG.connect(o.frequency);vib.start(t);
   const nBuf=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);
   const nd=nBuf.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=Math.random()*2-1;
   const ns=ctx.createBufferSource();ns.buffer=nBuf;ns.loop=true;
@@ -219,8 +181,8 @@ function mkFlute(ctx,freq,t){
   const ng=ctx.createGain();ng.gain.value=0.025;
   ns.connect(nf);nf.connect(ng);ng.connect(g);ns.start(t);
   g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.2,t+0.08);
-  const all=[o,vib,ns];
-  return()=>{const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(g.gain.value,n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.12);setTimeout(()=>all.forEach(x=>{try{x.stop()}catch(e){}}),250);};
+  const all=[o,ns];
+  return()=>{const n=ctx.currentTime;g.gain.cancelScheduledValues(n);g.gain.setValueAtTime(Math.max(0.00001,g.gain.value),n);g.gain.exponentialRampToValueAtTime(0.0001,n+0.12);setTimeout(()=>all.forEach(x=>{try{x.stop()}catch(e){}}),250);};
 }
 
 function noiseBuffer(ctx,dur){
@@ -229,6 +191,7 @@ function noiseBuffer(ctx,dur){
   return b;
 }
 function mkDrums(ctx,freq,t,m){
+  m=m-12;
   const g=ctx.createGain();g.connect(ctx.destination);
   const noop=()=>{};
   if(m===35||m===36){
@@ -331,13 +294,11 @@ const CATALOG=[
   {id:'bass',    name:'Bass'},
   {id:'organ',   name:'Organ'},
   {id:'lead',    name:'Lead'},
-  {id:'marimba', name:'Marimba'},
-  {id:'guitar',  name:'Guitar'},
   {id:'flute',   name:'Flute'},
 ];
 const FN_MAP={
   piano:mkPiano,epiano:mkEPiano,strings:mkStrings,drums:mkDrums,
-  bass:mkBass,organ:mkOrgan,lead:mkLead,marimba:mkMarimba,guitar:mkGuitar,flute:mkFlute,
+  bass:mkBass,organ:mkOrgan,lead:mkLead,flute:mkFlute,
 };
 const NAME_MAP={};
 
@@ -372,7 +333,7 @@ function closePanel(){soundPanel.classList.remove('open');}
 function playNote(m){
   if(!soundEnabled)return;
   stopNote(m);
-  const ctx=getCtx();const t=ctx.currentTime;
+  const ctx=getCtx();const t=ctx.currentTime+0.005;
   const stopFn=FN_MAP[currentSoundId](ctx,midiToFreq(m),t,m);
   activeNodes[m]={stopFn};
 }
@@ -394,7 +355,7 @@ function baseClass(m){return IS_BLACK[m%12]?'black':'white'}
 function renderKeyState(m){
   const el=keyEls[m];if(!el)return;
   el.className=baseClass(m);
-  if(clickHeld.has(m)||midiHeld.has(m)||midiSustained.has(m))el.classList.add('active');
+  if(clickHeld.has(m)||midiHeld.has(m)||midiSustained.has(m)||(sustainEnabled&&pedalSustained.has(m)))el.classList.add('active');
 }
 function noteOn(m,fromMidi=false){
   if(m<MMIN||m>MMAX)return;
@@ -406,28 +367,36 @@ function noteOn(m,fromMidi=false){
 function noteOff(m,fromMidi=false){
   if(fromMidi){
     midiHeld.delete(m);
-    if(sustainEnabled&&pedalDown)midiSustained.add(m);
-    else{midiSustained.delete(m);if(!clickHeld.has(m))stopNote(m);}
+    if(pedalDown){
+      pedalSustained.add(m);
+      if(sustainEnabled)midiSustained.add(m);
+    }else{
+      pedalSustained.delete(m);
+      midiSustained.delete(m);
+      if(!clickHeld.has(m))stopNote(m);
+    }
   }else{
     clickHeld.delete(m);
-    if(!midiHeld.has(m)&&!midiSustained.has(m))stopNote(m);
+    if(!midiHeld.has(m)&&!pedalSustained.has(m))stopNote(m);
   }
   renderKeyState(m);
 }
 function releaseSustainedNotes(){
-  const r=[...midiSustained];midiSustained.clear();
-  r.forEach(m=>{if(!clickHeld.has(m)&&!midiHeld.has(m))stopNote(m);renderKeyState(m);});
+  const ps=[...pedalSustained];pedalSustained.clear();
+  ps.forEach(m=>{if(!clickHeld.has(m)&&!midiHeld.has(m))stopNote(m);});
+  const ms=[...midiSustained];midiSustained.clear();
+  ms.forEach(m=>renderKeyState(m));
 }
 function setSustainEnabled(v){
   sustainEnabled=v;
   sustainButton.classList.toggle('active',v);
   sustainButton.setAttribute('aria-pressed',String(v));
-  if(!v)releaseSustainedNotes();
+  if(!v){const ms=[...midiSustained];midiSustained.clear();ms.forEach(m=>renderKeyState(m));}
 }
 function setPedal(v){
   const next=v>=64;if(pedalDown===next)return;
   pedalDown=next;
-  if(!sustainEnabled||pedalDown)return;
+  if(pedalDown)return;
   releaseSustainedNotes();
 }
 sustainButton.addEventListener('click',()=>setSustainEnabled(!sustainEnabled));
