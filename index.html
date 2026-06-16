@@ -14,8 +14,9 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .midi-notice.visible{display:block}
 
 .toggle-button{position:absolute;z-index:10;appearance:none;display:flex;align-items:center;gap:8px;border:none;background:none;color:#1e293b;padding:4px 0;font:700 11px/1 system-ui,sans-serif;letter-spacing:0.04em;cursor:pointer;user-select:none}
-.sustain-button{right:18px;bottom:calc(100% + 10px)}
-.sound-button{right:18px;bottom:calc(100% + 34px)}
+.keyshape-button{right:18px;bottom:calc(100% + 10px)}
+.sustain-button{right:18px;bottom:calc(100% + 34px)}
+.sound-button{right:18px;bottom:calc(100% + 58px)}
 .toggle-label{white-space:nowrap;color:#94a3b8;display:inline-block;width:110px;text-align:right;margin-right:8px}
 .toggle-button.active .toggle-label{color:#1e293b}
 .toggle-switch{position:relative;width:26px;height:14px;flex:0 0 auto;border-radius:999px;background:#cbd5e1;transition:background .12s ease}
@@ -23,7 +24,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .toggle-button.active .toggle-switch{background:#1e293b}
 .toggle-button.active .toggle-switch::after{transform:translateX(12px)}
 
-.sound-pick-wrap{position:absolute;right:18px;bottom:calc(100% + 58px);z-index:20}
+.sound-pick-wrap{position:absolute;right:18px;bottom:calc(100% + 82px);z-index:20}
 .sound-pick-btn{appearance:none;border:none;background:none;padding:4px 0;font:700 11px/1 system-ui,sans-serif;letter-spacing:0.04em;cursor:pointer;color:#1e293b;display:flex;align-items:center;gap:8px;user-select:none}
 .sound-pick-name{white-space:nowrap;color:#94a3b8;display:inline-block;width:88px;text-align:right;margin-right:8px}
 .sound-pick-arr{width:26px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:14px;color:#cbd5e1;letter-spacing:1px;line-height:1}
@@ -36,11 +37,13 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 
 .piano-wrap{position:relative;width:100%;background:#fff}
 .piano{position:relative;width:100%;aspect-ratio:52/4.2;overflow:hidden;background:#fff}
+.piano.tall{aspect-ratio:52/5.5}
 .piano::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:#1e293b;z-index:5;pointer-events:none}
 .white,.black{position:absolute;user-select:none;touch-action:none;transition:background .06s ease}
 .white{background:#fff;border-top:1px solid #1e293b;border-right:1px solid #1e293b;border-bottom:1px solid #1e293b;height:100%}
 .white.first-white{border-left:1px solid #1e293b}
-.black{z-index:2;background:#1e293b;border:1px solid #1e293b;border-top:none;height:65%}
+.black{z-index:2;background:#1e293b;border:1px solid #1e293b;border-top:none;height:62%}
+.piano.tall .black{height:65%}
 .white.active,.black.active{background:var(--active)!important;box-shadow:none!important}
 </style>
 </head>
@@ -57,6 +60,10 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
       <div class="sound-panel" id="soundPanel"></div>
     </div>
 
+    <button class="toggle-button keyshape-button" id="keyShapeButton" type="button" aria-pressed="false">
+      <span class="toggle-label" id="keyShapeLabel">KEY SHAPE</span>
+      <span class="toggle-switch" aria-hidden="true"></span>
+    </button>
     <button class="toggle-button sound-button" id="soundButton" type="button" aria-pressed="false">
       <span class="toggle-label" id="soundLabel">SOUND</span>
       <span class="toggle-switch" aria-hidden="true"></span>
@@ -76,6 +83,7 @@ const BLACK_TRANSLATE={1:-67,3:-33,6:-72,8:-50,10:-28};
 const piano=document.getElementById('piano');
 const sustainButton=document.getElementById('sustainButton');
 const sustainLabel=document.getElementById('sustainLabel');
+const keyShapeButton=document.getElementById('keyShapeButton');
 const soundButton=document.getElementById('soundButton');
 const soundLabel=document.getElementById('soundLabel');
 const soundPickBtn=document.getElementById('soundPickBtn');
@@ -350,6 +358,12 @@ function setSoundEnabled(v){
   if(!v)Object.keys(activeNodes).forEach(m=>stopNote(Number(m)));
 }
 soundButton.addEventListener('click',()=>setSoundEnabled(!soundEnabled));
+function setKeyShapeTall(v){
+  piano.classList.toggle('tall',v);
+  keyShapeButton.classList.toggle('active',v);
+  keyShapeButton.setAttribute('aria-pressed',String(v));
+}
+keyShapeButton.addEventListener('click',()=>setKeyShapeTall(!piano.classList.contains('tall')));
 
 function baseClass(m){return IS_BLACK[m%12]?'black':'white'}
 function renderKeyState(m){
@@ -465,6 +479,12 @@ async function initMidiAccess(){
 buildPiano();
 if(!navigator.requestMIDIAccess){document.getElementById('midiNotice').classList.add('visible');}
 else{initMidiAccess();}
+
+const pianoWrap=document.querySelector('.piano-wrap');
+const appEl=document.querySelector('.app');
+const lockedTop=pianoWrap.getBoundingClientRect().top;
+appEl.style.justifyContent='flex-start';
+pianoWrap.style.marginTop=lockedTop+'px';
 </script>
 </body>
 </html>
