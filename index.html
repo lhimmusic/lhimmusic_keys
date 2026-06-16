@@ -9,7 +9,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
-.app{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.app{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
 .midi-notice{display:none;width:100%;background:#fef3c7;border-bottom:1px solid #f59e0b;color:#92400e;font:500 11px/1.4 system-ui,sans-serif;text-align:center;padding:7px 16px}
 .midi-notice.visible{display:block}
 
@@ -35,7 +35,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .s-row:hover{background:#f8fafc}
 .s-row.sel{background:#fffbeb;color:#1e293b}
 
-.piano-wrap{position:relative;width:100%;background:#fff}
+.piano-wrap{position:relative;width:100%;background:#fff;margin-top:112px}
 .piano{position:relative;width:100%;aspect-ratio:52/4.2;overflow:hidden;background:#fff}
 .piano.tall{aspect-ratio:52/5.5}
 .piano::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:#1e293b;z-index:5;pointer-events:none}
@@ -479,12 +479,6 @@ async function initMidiAccess(){
 buildPiano();
 if(!navigator.requestMIDIAccess){document.getElementById('midiNotice').classList.add('visible');}
 else{initMidiAccess();}
-
-const pianoWrap=document.querySelector('.piano-wrap');
-const appEl=document.querySelector('.app');
-const lockedTop=pianoWrap.getBoundingClientRect().top;
-appEl.style.justifyContent='flex-start';
-pianoWrap.style.marginTop=lockedTop+'px';
 </script>
 </body>
 </html>
