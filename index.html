@@ -425,7 +425,7 @@ function setPedal(v){
 sustainButton.addEventListener('click',()=>setSustainEnabled(!sustainEnabled));
 
 let pointerMidiMap={},pointerStartY={},pointerDragging={};
-const DRAG_THRESHOLD=8;
+const DRAG_THRESHOLD=20;
 function midiFromPoint(x,y){
   const bl=piano.lastElementChild;
   for(const el of bl.children){const r=el.getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return Number(el.dataset.midi);}
