@@ -39,7 +39,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .s-row:hover{background:#f8fafc}
 .s-row.sel{background:#fffbeb;color:#1e293b}
 
-.piano-wrap{position:relative;width:calc(var(--pw-scale,1)*100%);background:#fff;margin-top:var(--pw-top,max(112px,calc(50vh - 56px - 4.04vw - 30px)))}
+.piano-wrap{position:relative;width:calc(var(--pw-scale,1)*100%);margin-left:var(--pw-ml,0px);background:#fff;margin-top:var(--pw-top,max(112px,calc(50vh - 56px - 4.04vw - 30px)))}
 .piano{position:relative;width:100%;aspect-ratio:52/4.2;overflow:hidden;background:#fff}
 .piano.tall{aspect-ratio:52/5.5}
 .piano::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:#1e293b;z-index:5;pointer-events:none}
@@ -75,7 +75,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
     <button class="toggle-button keyshape-button" id="keyShapeButton" type="button" aria-pressed="false">
       <span class="toggle-label">KEY SHAPE</span><span class="toggle-switch" aria-hidden="true"></span>
     </button>
-    <button class="toggle-button sound-button" id="soundButton" type="button" aria-pressed="false">
+    <button class="toggle-button sound-button active" id="soundButton" type="button" aria-pressed="true">
       <span class="toggle-label">SOUND</span><span class="toggle-switch" aria-hidden="true"></span>
     </button>
     <button class="toggle-button sustain-button" id="sustainButton" type="button" aria-pressed="false">
@@ -107,7 +107,7 @@ const soundPanel=document.getElementById('soundPanel');
 
 let keyEls={},clickHeld=new Set(),midiHeld=new Set(),midiSustained=new Set(),pedalSustained=new Set();
 let pedalDown=false,sustainEnabled=false,midiInitStarted=false;
-let soundEnabled=false,audioCtx=null,currentSoundId='piano',masterNode=null;
+let soundEnabled=true,audioCtx=null,currentSoundId='piano',masterNode=null;
 const activeNodes={};
 
 function getCtx(){
@@ -115,16 +115,18 @@ function getCtx(){
   if(audioCtx.state==='suspended')audioCtx.resume();
   return audioCtx;
 }
+let audioUnlocked=false;
 function unlockAudio(){
+  if(audioUnlocked)return;audioUnlocked=true;
   const ctx=getCtx();
+  ctx.resume();
   const buf=ctx.createBuffer(1,1,22050);
   const src=ctx.createBufferSource();
   src.buffer=buf;src.connect(ctx.destination);src.start(0);
-  ctx.resume();
 }
-document.addEventListener('touchstart',unlockAudio,{once:true,passive:false});
-document.addEventListener('touchend',unlockAudio,{once:true,passive:false});
-document.addEventListener('click',unlockAudio,{once:true});
+['touchstart','touchend','pointerdown','click'].forEach(ev=>
+  document.addEventListener(ev,unlockAudio,{passive:true})
+);
 
 function getMaster(ctx){
   if(!masterNode){
@@ -559,8 +561,22 @@ else initMidiAccess();
   window.addEventListener('wheel',function(e){
     e.preventDefault();
     if(offsetY===null)offsetY=getDefaultTop();
-    applyOffset(offsetY-e.deltaY);
+    if(e.getModifierState&&e.getModifierState('z')||zKeyDown){
+      const vw=window.innerWidth;
+      const factor=e.deltaY<0?1.1:1/1.1;
+      const s=Math.min(4,Math.max(1,curScale*factor));
+      const mx=e.clientX;
+      const r=wrap.getBoundingClientRect();
+      const frac=(mx-r.left)/r.width;
+      const ml=mx-frac*s*vw;
+      applyScale(s,ml);
+    }else{
+      applyOffset(offsetY-e.deltaY);
+    }
   },{passive:false});
+  let zKeyDown=false;
+  document.addEventListener('keydown',function(e){if(e.key==='z'||e.key==='Z')zKeyDown=true;});
+  document.addEventListener('keyup',function(e){if(e.key==='z'||e.key==='Z')zKeyDown=false;});
   // 1-finger drag: position
   const appEl=document.querySelector('.app');
   let tStartY=null,tOffsetStart=null;
@@ -576,20 +592,35 @@ else initMidiAccess();
   },{passive:false});
   appEl.addEventListener('touchend',function(){tStartY=null;},{passive:true});
 
-  // 2-finger pinch: scale
-  let pinchDist0=null,pinchScale0=1,curScale=1;
+  // 2-finger pinch: scale with origin at pinch center
+  let pinchDist0=null,pinchScale0=1,pinchML0=0,pinchFrac=0,curScale=1,curML=0;
   function dist2(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
-  function applyScale(s){
+  function applyScale(s,ml){
     curScale=Math.min(4,Math.max(1,s));
+    const maxML=-(curScale-1)*window.innerWidth;
+    curML=Math.min(0,Math.max(maxML,ml));
     wrap.style.setProperty('--pw-scale',curScale);
+    wrap.style.setProperty('--pw-ml',curML+'px');
   }
   document.addEventListener('touchstart',function(e){
-    if(e.touches.length===2){pinchDist0=dist2(e.touches);pinchScale0=curScale;tStartY=null;}
+    if(e.touches.length===2){
+      tStartY=null;
+      pinchDist0=dist2(e.touches);
+      pinchScale0=curScale;
+      pinchML0=curML;
+      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      const wRect=wrap.getBoundingClientRect();
+      pinchFrac=(cx-wRect.left)/wRect.width;
+    }
   },{passive:false});
   document.addEventListener('touchmove',function(e){
     if(e.touches.length===2&&pinchDist0){
       e.preventDefault();
-      applyScale(pinchScale0*(dist2(e.touches)/pinchDist0));
+      const s=Math.min(4,Math.max(1,pinchScale0*(dist2(e.touches)/pinchDist0)));
+      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      const newW=s*window.innerWidth;
+      const ml=cx-pinchFrac*newW;
+      applyScale(s,ml);
     }
   },{passive:false});
   document.addEventListener('touchend',function(e){
