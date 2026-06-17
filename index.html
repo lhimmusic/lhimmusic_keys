@@ -39,7 +39,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .s-row:hover{background:#f8fafc}
 .s-row.sel{background:#fffbeb;color:#1e293b}
 
-.piano-wrap{position:relative;width:100%;background:#fff;margin-top:var(--pw-top,max(112px,calc(50vh - 56px - 4.04vw - 30px)))}
+.piano-wrap{position:relative;width:calc(var(--pw-scale,1)*100%);background:#fff;margin-top:var(--pw-top,max(112px,calc(50vh - 56px - 4.04vw - 30px)))}
 .piano{position:relative;width:100%;aspect-ratio:52/4.2;overflow:hidden;background:#fff}
 .piano.tall{aspect-ratio:52/5.5}
 .piano::before{content:"";position:absolute;inset:0 0 auto 0;height:1px;background:#1e293b;z-index:5;pointer-events:none}
@@ -561,19 +561,40 @@ else initMidiAccess();
     if(offsetY===null)offsetY=getDefaultTop();
     applyOffset(offsetY-e.deltaY);
   },{passive:false});
+  // 1-finger drag: position
   const appEl=document.querySelector('.app');
   let tStartY=null,tOffsetStart=null;
   appEl.addEventListener('touchstart',function(e){
-    if(piano.contains(e.target))return;
+    if(e.touches.length!==1||piano.contains(e.target))return;
     tStartY=e.touches[0].clientY;
     tOffsetStart=offsetY!==null?offsetY:getDefaultTop();
   },{passive:false});
   appEl.addEventListener('touchmove',function(e){
-    if(tStartY===null)return;
+    if(e.touches.length!==1||tStartY===null)return;
     e.preventDefault();
     applyOffset(tOffsetStart+(e.touches[0].clientY-tStartY));
   },{passive:false});
   appEl.addEventListener('touchend',function(){tStartY=null;},{passive:true});
+
+  // 2-finger pinch: scale
+  let pinchDist0=null,pinchScale0=1,curScale=1;
+  function dist2(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
+  function applyScale(s){
+    curScale=Math.min(4,Math.max(1,s));
+    wrap.style.setProperty('--pw-scale',curScale);
+  }
+  document.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){pinchDist0=dist2(e.touches);pinchScale0=curScale;tStartY=null;}
+  },{passive:false});
+  document.addEventListener('touchmove',function(e){
+    if(e.touches.length===2&&pinchDist0){
+      e.preventDefault();
+      applyScale(pinchScale0*(dist2(e.touches)/pinchDist0));
+    }
+  },{passive:false});
+  document.addEventListener('touchend',function(e){
+    if(e.touches.length<2)pinchDist0=null;
+  },{passive:true});
 })();
 </script>
 </body>
