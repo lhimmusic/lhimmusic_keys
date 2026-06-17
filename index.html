@@ -571,7 +571,7 @@ else initMidiAccess();
     if(zKeyDown){
       const vw=window.innerWidth;
       const delta=e.deltaMode===1?e.deltaY*30:e.deltaMode===2?e.deltaY*300:e.deltaY;
-      const s=Math.min(4,Math.max(1,curScale*Math.pow(0.999,delta)));
+      const s=Math.min(4,Math.max(1,curScale*Math.pow(0.999,-delta)));
       const mx=e.clientX;
       const r=wrap.getBoundingClientRect();
       const frac=(mx-r.left)/r.width;
