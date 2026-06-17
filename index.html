@@ -18,10 +18,10 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .keyshape-button{right:18px;bottom:calc(100% + 10px)}
 .sustain-button{right:18px;bottom:calc(100% + 34px)}
 .sound-button{right:18px;bottom:calc(100% + 58px)}
-.piano-wrap.controls-below .keyshape-button{bottom:auto;top:calc(100% + 10px)}
-.piano-wrap.controls-below .sustain-button{bottom:auto;top:calc(100% + 34px)}
-.piano-wrap.controls-below .sound-button{bottom:auto;top:calc(100% + 58px)}
-.piano-wrap.controls-below .sound-pick-wrap{bottom:auto;top:calc(100% + 82px)}
+.piano-wrap.controls-below .sound-pick-wrap{bottom:auto;top:calc(100% + 10px)}
+.piano-wrap.controls-below .sound-button{bottom:auto;top:calc(100% + 34px)}
+.piano-wrap.controls-below .sustain-button{bottom:auto;top:calc(100% + 58px)}
+.piano-wrap.controls-below .keyshape-button{bottom:auto;top:calc(100% + 82px)}
 .toggle-label{white-space:nowrap;color:#94a3b8;display:inline-block;width:110px;text-align:right;margin-right:8px}
 .toggle-button.active .toggle-label{color:#1e293b}
 .toggle-switch{position:relative;width:26px;height:14px;flex:0 0 auto;border-radius:999px;background:#cbd5e1;transition:background .12s ease}
@@ -40,7 +40,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .s-row:hover{background:#f8fafc}
 .s-row.sel{background:#fffbeb;color:#1e293b}
 
-.piano-wrap{position:relative;width:var(--pw-width,100%);background:#fff;margin-top:var(--pw-top,max(112px,calc(50vh - 56px - 4.04vw - 60px)));transition:margin-top 0s}
+.piano-wrap{position:relative;width:var(--pw-width,100%);background:#fff;margin-top:var(--pw-top,max(112px,calc(50vh - 56px - 4.04vw - 30px)));transition:margin-top 0s}
 .app{overflow:hidden}
 .piano{position:relative;width:100%;aspect-ratio:52/4.2;overflow:hidden;background:#fff}
 .piano.tall{aspect-ratio:52/5.5}
@@ -55,10 +55,10 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .help-btn{position:absolute;right:18px;bottom:calc(100% + 106px);z-index:10;appearance:none;border:none;background:none;color:#cbd5e1;width:22px;height:22px;font:700 14px/1 system-ui;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:color .12s}
 .help-btn:hover{color:#1e293b}
 .piano-wrap.controls-below .help-btn{bottom:auto;top:calc(100% + 106px)}
+/* controls-below: PIANO(10) SOUND(34) SUSTAIN(58) KEYSHAPE(82) HELP(106) */
 
-.help-panel{position:absolute;right:18px;bottom:calc(100% + 130px);z-index:40;background:#fff;border:1px solid #1e293b;padding:14px 16px;display:none;min-width:190px}
+.help-panel{position:fixed;z-index:40;background:#fff;border:1px solid #1e293b;padding:14px 16px;display:none;min-width:190px}
 .help-panel.open{display:block}
-.piano-wrap.controls-below .help-panel{bottom:auto;top:calc(100% + 130px)}
 .help-row{display:flex;gap:10px;margin-bottom:6px;align-items:baseline}
 .help-row:last-child{margin-bottom:0}
 .help-key{font:700 11px/1 system-ui;letter-spacing:0.04em;color:#1e293b;white-space:nowrap;min-width:72px}
@@ -517,7 +517,25 @@ async function initMidiAccess(){
 
 const helpBtn=document.getElementById('helpBtn');
 const helpPanel=document.getElementById('helpPanel');
-helpBtn.addEventListener('click',e=>{e.stopPropagation();helpPanel.classList.toggle('open');});
+helpBtn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const isOpen=helpPanel.classList.contains('open');
+  if(isOpen){helpPanel.classList.remove('open');return;}
+  const r=helpBtn.getBoundingClientRect();
+  const ph=helpPanel.offsetHeight||120;
+  const spaceAbove=r.top;
+  const spaceBelow=window.innerHeight-r.bottom;
+  if(spaceAbove>spaceBelow){
+    helpPanel.style.top=(r.top-ph-6)+'px';
+  } else {
+    helpPanel.style.top=(r.bottom+6)+'px';
+  }
+  helpPanel.style.right=(window.innerWidth-r.right)+'px';
+  helpPanel.style.left='auto';
+  helpPanel.classList.add('open');
+  const ph2=helpPanel.offsetHeight;
+  if(spaceAbove>spaceBelow){helpPanel.style.top=(r.top-ph2-6)+'px';}
+});
 document.addEventListener('click',()=>helpPanel.classList.remove('open'));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')helpPanel.classList.remove('open');});
 
