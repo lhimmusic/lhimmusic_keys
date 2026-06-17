@@ -570,6 +570,22 @@ else{initMidiAccess();}
     if(offsetY===null)offsetY=getDefaultTop();
     applyOffset(offsetY-e.deltaY);
   },{passive:false});
+
+  let touchStartY=null,touchOffsetStart=null;
+  const pianoEl=document.getElementById('piano');
+  document.addEventListener('touchstart',function(e){
+    if(pianoEl.contains(e.target))return;
+    touchStartY=e.touches[0].clientY;
+    touchOffsetStart=offsetY!==null?offsetY:getDefaultTop();
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(touchStartY===null)return;
+    if(pianoEl.contains(e.target))return;
+    e.preventDefault();
+    const dy=e.touches[0].clientY-touchStartY;
+    applyOffset(touchOffsetStart+dy);
+  },{passive:false});
+  document.addEventListener('touchend',function(){touchStartY=null;});
 })();
 </script>
 </body>
