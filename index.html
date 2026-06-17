@@ -115,8 +115,16 @@ function getCtx(){
   if(audioCtx.state==='suspended')audioCtx.resume();
   return audioCtx;
 }
-document.addEventListener('touchstart',()=>getCtx(),{once:true,passive:true});
-document.addEventListener('pointerdown',()=>getCtx(),{once:true,passive:true});
+function unlockAudio(){
+  const ctx=getCtx();
+  const buf=ctx.createBuffer(1,1,22050);
+  const src=ctx.createBufferSource();
+  src.buffer=buf;src.connect(ctx.destination);src.start(0);
+  ctx.resume();
+}
+document.addEventListener('touchstart',unlockAudio,{once:true,passive:false});
+document.addEventListener('touchend',unlockAudio,{once:true,passive:false});
+document.addEventListener('click',unlockAudio,{once:true});
 
 function getMaster(ctx){
   if(!masterNode){
@@ -424,7 +432,7 @@ function setPedal(v){
 }
 sustainButton.addEventListener('click',()=>setSustainEnabled(!sustainEnabled));
 
-let pointerMidiMap={},pointerStartY={},pointerDragging={};
+let pointerMidiMap={},pointerStartY={},pointerDragging={},pointerDragAnchorY={},pointerPianoStartTop={};
 const DRAG_THRESHOLD=20;
 function midiFromPoint(x,y){
   const bl=piano.lastElementChild;
@@ -447,15 +455,15 @@ piano.addEventListener('pointermove',e=>{
   if(!(e.buttons&1))return;
   const pid=e.pointerId;
   if(pointerDragging[pid]){
-    const dy=e.clientY-pointerStartY[pid];
-    pointerStartY[pid]=e.clientY;
-    if(window.applyPianoOffset)applyPianoOffset(dy);
+    const newTop=pointerPianoStartTop[pid]+(e.clientY-pointerDragAnchorY[pid]);
+    if(window.applyPianoAbsolute)applyPianoAbsolute(newTop);
     return;
   }
   const dy=Math.abs(e.clientY-(pointerStartY[pid]||e.clientY));
   if(dy>DRAG_THRESHOLD){
     pointerDragging[pid]=true;
-    pointerStartY[pid]=e.clientY;
+    pointerDragAnchorY[pid]=e.clientY;
+    pointerPianoStartTop[pid]=document.querySelector('.piano-wrap').getBoundingClientRect().top;
     const prev=pointerMidiMap[pid];
     if(prev!==undefined)noteOff(prev,false);
     return;
@@ -467,7 +475,7 @@ piano.addEventListener('pointermove',e=>{
 function cleanPointer(e){
   const pid=e.pointerId;
   if(!pointerDragging[pid]){const m=pointerMidiMap[pid];if(m!==undefined)noteOff(m,false);}
-  delete pointerMidiMap[pid];delete pointerStartY[pid];delete pointerDragging[pid];
+  delete pointerMidiMap[pid];delete pointerStartY[pid];delete pointerDragging[pid];delete pointerDragAnchorY[pid];delete pointerPianoStartTop[pid];
 }
 piano.addEventListener('pointerup',cleanPointer);
 piano.addEventListener('pointercancel',cleanPointer);
@@ -547,10 +555,7 @@ else initMidiAccess();
     offsetY=clamped;
     wrap.classList.toggle('controls-below',clamped<100);
   }
-  window.applyPianoOffset=function(dy){
-    if(offsetY===null)offsetY=getDefaultTop();
-    applyOffset(offsetY+dy);
-  };
+  window.applyPianoAbsolute=function(top){applyOffset(top);};
   window.addEventListener('wheel',function(e){
     e.preventDefault();
     if(offsetY===null)offsetY=getDefaultTop();
