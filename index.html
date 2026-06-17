@@ -75,7 +75,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
     <button class="toggle-button keyshape-button" id="keyShapeButton" type="button" aria-pressed="false">
       <span class="toggle-label">KEY SHAPE</span><span class="toggle-switch" aria-hidden="true"></span>
     </button>
-    <button class="toggle-button sound-button active" id="soundButton" type="button" aria-pressed="true">
+    <button class="toggle-button sound-button" id="soundButton" type="button" aria-pressed="false">
       <span class="toggle-label">SOUND</span><span class="toggle-switch" aria-hidden="true"></span>
     </button>
     <button class="toggle-button sustain-button" id="sustainButton" type="button" aria-pressed="false">
@@ -107,7 +107,7 @@ const soundPanel=document.getElementById('soundPanel');
 
 let keyEls={},clickHeld=new Set(),midiHeld=new Set(),midiSustained=new Set(),pedalSustained=new Set();
 let pedalDown=false,sustainEnabled=false,midiInitStarted=false;
-let soundEnabled=true,audioCtx=null,currentSoundId='piano',masterNode=null;
+let soundEnabled=false,audioCtx=null,currentSoundId='piano',masterNode=null;
 const activeNodes={};
 
 function getCtx(){
