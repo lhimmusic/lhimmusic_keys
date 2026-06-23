@@ -10,8 +10,9 @@
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden}
 body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 .app{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:hidden;touch-action:none}
-.midi-notice{display:none;width:100%;background:#fef3c7;border-bottom:1px solid #f59e0b;color:#92400e;font:500 11px/1.4 system-ui,sans-serif;text-align:center;padding:7px 16px}
+.midi-notice{display:none;width:100%;background:#fef3c7;border-bottom:1px solid #f59e0b;color:#92400e;font:500 11px/1.4 system-ui,sans-serif;text-align:center;padding:7px 16px;position:relative;box-sizing:border-box}
 .midi-notice.visible{display:block}
+.midi-notice-close{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#92400e;font:700 14px/1 system-ui,sans-serif;cursor:pointer;padding:2px 6px;outline:none}
 
 .toggle-button{position:absolute;z-index:10;appearance:none;display:flex;align-items:center;gap:8px;border:none;background:none;color:#1e293b;padding:4px 0;font:700 11px/1 system-ui,sans-serif;letter-spacing:0.04em;cursor:pointer;user-select:none;outline:none}
 .keyshape-button{right:18px;bottom:calc(100% + 10px)}
@@ -64,6 +65,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
 <body>
 <div class="app">
   <div class="midi-notice" id="midiNotice">이 브라우저는 MIDI를 지원하지 않습니다. MIDI 기기를 연결하려면 Chrome을 사용해 주세요.</div>
+  <div class="midi-notice" id="midiWinNotice">윈도우는 MIDI 입력을 한 프로그램에서만 지원합니다. 큐베이스 등 DAW에서 사용 중이면 입력이 안 될 수 있습니다. 동시 사용은 loopMIDI 같은 가상 포트로 가능합니다.<button class="midi-notice-close" id="midiWinNoticeClose" type="button" aria-label="닫기">×</button></div>
   <div class="piano-wrap">
     <div class="sound-pick-wrap">
       <button class="sound-pick-btn" id="soundPickBtn" type="button">
@@ -520,14 +522,23 @@ function bindMidiInput(input){
   };
 }
 async function initMidiAccess(){
-  if(midiInitStarted)return;midiInitStarted=true;
+  if(midiInitStarted)return null;midiInitStarted=true;
   try{
     const access=await navigator.requestMIDIAccess();
     for(const input of access.inputs.values())bindMidiInput(input);
     access.onstatechange=({port})=>{
       if(port.type==='input'&&port.state==='connected')bindMidiInput(port);
+      updateMidiWinNotice(access);
     };
-  }catch(e){midiInitStarted=false;}
+    return access;
+  }catch(e){midiInitStarted=false;return null;}
+}
+function updateMidiWinNotice(access){
+  const winNotice=document.getElementById('midiWinNotice');
+  const isWin=navigator.userAgentData?navigator.userAgentData.platform==='Windows':/Win/.test(navigator.platform);
+  const hasInput=access&&access.inputs.size>0;
+  if(isWin&&!hasInput)winNotice.classList.add('visible');
+  else winNotice.classList.remove('visible');
 }
 
 const helpBtn=document.getElementById('helpBtn');
@@ -558,7 +569,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')helpPanel.classList.
 
 buildPiano();
 if(!navigator.requestMIDIAccess)document.getElementById('midiNotice').classList.add('visible');
-else initMidiAccess();
+else{
+  initMidiAccess().then(updateMidiWinNotice);
+  document.getElementById('midiWinNoticeClose').addEventListener('click',e=>{
+    e.stopPropagation();
+    document.getElementById('midiWinNotice').classList.remove('visible');
+  });
+}
 
 (function(){
   const wrap=document.querySelector('.piano-wrap');
