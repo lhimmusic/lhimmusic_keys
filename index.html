@@ -511,19 +511,22 @@ function buildPiano(){
   piano.appendChild(blackLayer);
 }
 
+function bindMidiInput(input){
+  input.onmidimessage=({data})=>{
+    const[status,d1,d2]=data,type=status&0xf0;
+    if(type===0x90&&d2>0)noteOn(d1,true);
+    else if(type===0x80||(type===0x90&&d2===0))noteOff(d1,true);
+    else if(type===0xb0&&d1===64)setPedal(d2);
+  };
+}
 async function initMidiAccess(){
   if(midiInitStarted)return;midiInitStarted=true;
   try{
     const access=await navigator.requestMIDIAccess();
-    const inputs=[...access.inputs.values()];if(!inputs.length)return;
-    for(const input of inputs){
-      input.onmidimessage=({data})=>{
-        const[status,d1,d2]=data,type=status&0xf0;
-        if(type===0x90&&d2>0)noteOn(d1,true);
-        else if(type===0x80||(type===0x90&&d2===0))noteOff(d1,true);
-        else if(type===0xb0&&d1===64)setPedal(d2);
-      };
-    }
+    for(const input of access.inputs.values())bindMidiInput(input);
+    access.onstatechange=({port})=>{
+      if(port.type==='input'&&port.state==='connected')bindMidiInput(port);
+    };
   }catch(e){midiInitStarted=false;}
 }
 
